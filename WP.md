@@ -2,7 +2,19 @@
 
 # Web  
 
-# Misc  
+# Misc
+
+## 我们生活在南京（一）
+
+用 Audacity 反转声音即可。
+
+## 我们生活在南京（二）
+
+根据提示，发现程序中被插入了高频正弦波，可以算出来频率是 1000Hz，添加一个相位相反的新正弦波抵消即可。
+
+## 我们生活在南京（三）
+
+根据提示，发现 `NU` 后面的字符都比特翻转了，还原即可，之后得到一个音频文件，还是根据提示可以知道国际空间站常用 PD-120 模式发送 SSTV，用相应的软件（比如 Robot36）解码即可。
 
 # Rev  
 
@@ -108,7 +120,50 @@ for i in range(0, nbit + 1):
 拿到对应的序列之后，可以直接按照对应的序列打死怪物，然后打死boss获取彩蛋。或者通过逆向，找到打死boss之后的逻辑:  
 ![](./img/nazo08.png)  
 可以看到当前在一个程序的全局变量上读取了大段的数据，并且调用解密函数。分析特征可知是一个AES-256-cbc加密，于是最终可写出解密脚本，最终解密得到的`flag.tmx`为  
-![](./img/nazo11.png)  
+![](./img/nazo11.png)
+
+## Warm up
+
+一个很简单的逆向，看[源码](./rev/Warm%20up/xor.c)可知只是在 construct 过程中加了另一个异或和反调试。
+
+## Destroyed ELF
+
+首先修复 ELF Program Header，自己随便编译一个 elf 文件进行对照（比如 hello world，一般来说Ubuntu 20.04 和 18.04 的 gcc 都行）：
+
+``` c
+#include <stdio.h>
+
+int main()
+{
+    return 0;
+}
+```
+
+首先修复 magic word，修复之后打开会发现报错：
+
+```
+ELF file with PHT cannot be ET_REL
+```
+
+接下来就修复该字段为 0x3。
+
+接着发现报错
+
+The PHT overwrites previously loaded segments with different file contents.
+Although the OS will likely succeed in loading this file,
+we recommend you to analyze this file's PHT.
+
+继续与自己编译出来的 binary 对比，发现 elf header size 也不正确，修改之。
+
+接下来 IDA 就能正常解析了。
+
+然后发现 start 函数只会输出错误的 flag，发现入口点被修改了，对比自己编译的binary，发现正常的位置在 0x1040 左右，而这个文件中的 start 函数位于 151F。向前追溯到 text 段开头，将 0x10e0 位置的代码 convert 并 create function 得到正确的 start 函数。接着将 header 中的 entry point 指向 0x10e0。
+
+然而此时的 main 函数仍不正确，不过我们可以用多种方法定位 main 函数，这里找到 main 函数的地址是 0x15DF，create function 之后就可以正常逆向了。我们也可以将 start 中的main函数指向正确的位置。
+
+接着会发现代码是先对 ELF Header 算了个哈希然后和 flag 异或，再和一个全局变量比较。动态调试获取哈希值然后和全局变量异或即可得到 flag。
+
+注：这道题手动 patch 了几个位置，src 中提供的源码编译出来和题目不一致是正常现象。
 
 # PWN
 ## format
