@@ -1,0 +1,1 @@
+flag = 'flag{I_4m_tHe luckI3st_peRson_1n_th3_w0rld!}'

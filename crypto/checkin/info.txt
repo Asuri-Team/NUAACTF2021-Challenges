@@ -1,0 +1,2 @@
+Attachment: True
+Docker: False
