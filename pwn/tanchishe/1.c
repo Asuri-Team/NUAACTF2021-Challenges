@@ -877,6 +877,9 @@ int mainMenu(void)
 
 int main() //Need to fix this up
 {
+	setvbuf(stdin,0,2,0);
+	setvbuf(stdout,0,2,0);
+	setvbuf(stderr,0,2,0);
 	system("stty -icanon");
 	system("stty -echo");
 	printf("\033[?25l");
