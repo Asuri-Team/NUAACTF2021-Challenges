@@ -1,0 +1,9 @@
+
+version: '2'
+
+services:
+  crypto2:
+    build: ./
+    ports:
+      - "10001:10000"
+  
