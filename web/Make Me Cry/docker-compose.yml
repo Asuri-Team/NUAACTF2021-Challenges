@@ -1,0 +1,8 @@
+version: '3'
+services:
+  web-2:
+    build: .
+    ports:
+      - "9000:80"
+    # restart: always
+    container_name: web-2
