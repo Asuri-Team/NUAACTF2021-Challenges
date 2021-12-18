@@ -317,7 +317,7 @@ pip3 install pycryptodome
 
 校赛来了，要出题了，看队里其他师傅出了比较常规的 LSB、emoji-aes、base编码、压缩包伪加密、音频隐写什么的，以及《我们生活在南京》系列无线电的题目，在想咱出点什么比较好呢。
 
-一想，今年强网杯线上赛的时候就 [有一道名叫 ExtremelySlow 的题目包含了 pyc 隐写](https://miaotony.xyz/2021/06/28/CTF_2021qiangwang/#ExtremelySlow)，当时用到的是 python 3.10，由于现成的反编译工具还不支持那么高版本直接还原出 python 源码，和队友手逆特别辛苦*（摊手.jpg*
+一想，今年强网杯线上赛的时候就 [有一道名叫 ExtremelySlow 的题目包含了 pyc 隐写](https://miaotony.xyz/2021/06/28/CTF_2021qiangwang/#ExtremelySlow)，当时用到的是 python 3.10，由于现成的反编译工具还不支持那么高版本直接还原出 python 源码，和队友手逆特别辛苦 *（摊手.jpg*
 
 **于是就出一题 pyc 隐写吧！**
 
@@ -444,9 +444,10 @@ for i in range(len(a)):
     linear_regression = LinearRegression(normalize=True)
     linear_regression.fit(xx, yy)
     message = linear_regression.coef_[0]
-    print(message)
+    # print(message)
     ans.append(round(message))
     y = linear_regression.intercept_
+    # print(y)
     ans.append(round(y))
 
 print(bytes(ans))
@@ -481,7 +482,7 @@ for points in data:
 
 这题其实是比赛前一天晚上到比赛当天凌晨出的。本来这题是可有可无的，毕竟 misc 题目已经不少了，可是喵喵想着就出了一题太少了，虽然那道题放在校赛可能有点难，但万一被秒了可不好，再出道难一点的吧。
 
-这题题目描述里的 `Do you remember the last NUAACTF? `，其实是因为上一届 NUAACTF *（在今年上半年，好像是因为疫情延期了，233）*出了一题也用到了域名 TXT 记录的，这里相当于回顾一下。
+这题题目描述里的 `Do you remember the last NUAACTF? `，其实是因为上一届 NUAACTF *（在今年上半年，好像是因为疫情延期了，233）* 出了一题也用到了域名 TXT 记录的，这里相当于回顾一下。
 
 之所以 TXT 里放 base32，是因为之前出题有过某些情况下解析出来大小写会锅，而 base32 的话字母全是大写的就不存在这个问题了。
 
@@ -489,13 +490,13 @@ for points in data:
 
 这个 pikachu 在原来的域名执行的结果是 ctf.asuri.club:xxxxx，也就是平台上的一个端口，访问得到的是和 https://itismath.vercel.app/ 几乎一样的结果，但由于比赛的时候服务器被 DDoS 攻击了，之后救回来系统重启了，虽然配了 `restart=always`，不知道为啥部署的容器还是没了，考虑到稳定性和可靠性干脆直接一键部署到 vercel 好了。相应地也就换了个域名，为了让选手不白做题，就说能解出原来的域名也直接给下一步了。
 
-最后就是题目里说的 Math 了，线性回归，算是比较简单能想到的一个数学应用吧，甚至为了简单给相应系数加的噪声（随机数）都极小，这个拟合结果貌似都 R^2=1 了*（好像是吧，懒得再看了*
+最后就是题目里说的 Math 了，线性回归，算是比较简单能想到的一个数学应用吧，甚至为了简单给相应系数加的噪声（随机数）都极小，这个拟合结果貌似都 R^2=1 了 *（好像是吧，懒得再看了*
 
 不过由于前面的步骤有点绕，比赛的时候问了选手进度，然后即使是疯狂放 hint，最后也只有一队校外的出了，校内也有一两队到线性回归这步骤但没时间解了，还是挺可惜的吧。
 
-另外，还有出题人的一些运维故事和心得体会，放在博客上了：[CTF | 2021 AsuriCTF / NUAACTF Misc 部分官方 WriteUp](https://miaotony.xyz/2021/12/16/CTF_2021AsuriCTF_NUAACTF_Misc/)
+另外，还有出题人的一些**运维故事和心得体会**，放在博客上了：[CTF | 2021 AsuriCTF / NUAACTF Misc 部分官方 WriteUp](https://miaotony.xyz/2021/12/16/CTF_2021AsuriCTF_NUAACTF_Misc/?utm_source=github_asuri)
 
-感谢大家来玩，希望都能有所收获喵~
+最后，**感谢大家来玩，希望大家都能有所收获喵~**
 
 
 
